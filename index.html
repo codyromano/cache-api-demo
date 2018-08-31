@@ -1,0 +1,168 @@
+<!doctype html>
+<html>
+<head>
+    <title>Cache API Demo</title>
+    <style>
+    :root {
+      --gutter: 1.5rem;
+      --row: 2rem;
+    }
+    *, *::after, *::before {
+      margin: 0;
+      padding: 0;
+    }
+    main {
+      display: flex;
+      flex-direction: column;
+      font-family: Helvetica;
+      padding: var(--gutter);
+    }
+    .main-content {
+      display: flex;
+      flex-direction: row;
+    }
+    .main-content menu {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      margin-right: var(--gutter);
+      max-width: 20rem;
+    }
+    .video-wrapper {
+      background: #eee;
+      flex: 3;
+    }
+    .hidden {
+      display: none;
+    }
+    .example-video {
+      max-width: 100%;
+    }
+    header {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+    }
+    button {
+      cursor: pointer;
+      background-color: #efe;
+      padding: 0.25rem;
+      font-family: inherit;
+      font-size: 1.25rem;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+    p {
+      font-size: 1.5rem;
+      margin-bottom: 2rem;
+      display: block;
+    }
+    </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Cache API Demo</h1>
+  </header>
+  <section class="main-content">
+    <menu>
+      <p>The Cache API lets you cache HTTP responses in the browser, using
+        up to 6% of available disk space. You can programmatically
+        invalidate the cache.</p>
+
+      <p><strong class="success hidden">The video is now downloaded! Try disconnecting
+        from the internet. You'll still be able to watch.</strong></p>
+
+      <button class="download-button" onClick="download()">Download Video</button>
+      <button class="delete-video-button" onClick="deleteCache()">Delete Cached Video</button>
+    </menu>
+    <section class="video-wrapper">
+      <video class="example-video hidden" controls autoplay/>
+    </section>
+  </section>
+</main>
+
+<script>
+const config = {
+  cache: {
+    name: 'exampleVideoCache'
+  },
+  video: {
+    title: "Ghostbusters Improv",
+    url: "https://s3-us-west-2.amazonaws.com/codyromano/video/ghostbusters.mp4"
+  }
+};
+
+const renderView = (state = { isDownloaded: false, isDownloading: false }) => {
+  const downloadButton = document.querySelector('.download-button');
+  downloadButton.style.display = state.isDownloaded ? 'none' : 'block';
+  downloadButton.innerText = state.isDownloading ? 'Downloading...' : 'Download Video';
+
+  const deleteButton = document.querySelector('.delete-video-button');
+  deleteButton.style.display = state.isDownloaded ? 'block' : 'none';
+  deleteButton.disabled = state.isDownloading;
+
+  const video = document.querySelector('.example-video');
+  const success = document.querySelector('.success');
+
+  if (state.isDownloaded) {
+    success.classList.remove('hidden');
+  } else {
+    success.classList.add('hidden');
+  }
+
+  if (state.isDownloaded || state.isDownloading) {
+    video.classList.remove('hidden');
+  } else {
+    video.classList.add('hidden');
+    video.pause();
+  }
+};
+
+let isDownloading = false;
+
+const renderController = async () => {
+  const cache = await caches.open(config.cache.name);
+  const isMatch = await cache.match(config.video.url);
+
+  renderView({
+    isDownloading,
+    isDownloaded: !!isMatch
+  });
+};
+
+const playVideo = url => {
+  const video = document.querySelector('.example-video');
+  video.classList.remove('hidden');
+  video.src = url;
+};
+
+const download = async () => {
+  isDownloading = true;
+  renderController();
+
+  playVideo(config.video.url);
+
+  try {
+    const cache = await caches.open(config.cache.name);
+    cache.add(config.video.url).then(() => {
+      isDownloading = false;
+      renderController();
+    });
+  } catch (err) {
+    alert('Error fetching demo file from S3...Sorry');
+  }
+};
+
+const deleteCache = async () => {
+  const cache = await caches.open(config.cache.name);
+  cache.delete(config.video.url).then(renderController);
+};
+
+playVideo(config.video.url);
+renderController();
+</script>
+
+</body>
+</html>
