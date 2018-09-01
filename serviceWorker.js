@@ -1,5 +1,6 @@
-const urls = [
-  '/demo.css',
+const urlsToCache = [
+  '/cache-api-demo/index.html',
+  '/cache-api-demo/demo.css',
   'https://s3-us-west-2.amazonaws.com/codyromano/video/ghostbusters.mp4'
 ];
 const CACHE_NAME = 'cache-api-demo';
